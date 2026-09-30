@@ -24,7 +24,6 @@ flowchart TB
     FISCAL["api-fiscal :8085"]:::default
 
     MYSQL[("MySQL 8.0 :3306")]:::db
-    REDIS[("Redis 7.2 :6379")]:::db
     RMQ{{"RabbitMQ :5672"}}:::db
     S3[("AWS S3")]:::db
 
@@ -37,7 +36,6 @@ flowchart TB
     SEFBACK["sefaz-backoffice :3002"]:::sefaz
 
     ERP -->|"JDBC"| MYSQL
-    ERP -->|"Cache"| REDIS
     ERP -->|"S3"| S3
     ERP <-->|"REST"| ADM
 
@@ -45,7 +43,6 @@ flowchart TB
     GW -->|"/fiscal"| FISCAL
 
     ADM -->|"JDBC"| MYSQL
-    ADM -->|"Cache"| REDIS
     ADM -->|"AMQP"| RMQ
 
     FISCAL -->|"JDBC"| MYSQL
@@ -91,7 +88,7 @@ docker compose --profile sefaz up -d
 ### 4. Modo Ágil para Desenvolvedores (Somente Infraestrutura)
 Se você estiver codando na sua IDE (IntelliJ/VS Code) e no terminal com `npm run dev`, você não precisa rodar os containers das suas próprias aplicações no Docker. Suba apenas a camada de bancos e brokers:
 ```bash
-docker compose up -d mysql redis rabbitmq
+docker compose up -d mysql rabbitmq
 ```
 
 ---
@@ -117,7 +114,6 @@ docker compose up -d mysql redis rabbitmq
 * **RabbitMQ Management Dashboard:** [http://localhost:15672](http://localhost:15672)  
   * *Usuário:* `router_admin` | *Senha:* `router_pass`
 * **MySQL 8.0:** `localhost:3306` (bancos: `erp_db`, `adm_db` e `fiscal_db`)
-* **Redis 7.2:** `localhost:6379`
 * **SEFAZ Cliente (Profile sefaz):** [http://localhost:3001](http://localhost:3001)
 * **SEFAZ Backoffice (Profile sefaz):** [http://localhost:3002](http://localhost:3002)
 * **SEFAZ Wiremock Service (Profile sefaz):** [http://localhost:8090](http://localhost:8090)
@@ -158,11 +154,6 @@ MYSQL_DATABASE=adm_db
 MYSQL_USER=router_user
 MYSQL_PASSWORD=router_pass
 
-# ==============================================================================
-# CACHE: Redis 7.2
-# ==============================================================================
-REDIS_PORT=6379
-REDIS_PASSWORD=redis_secure_password
 
 # ==============================================================================
 # MENSAGERIA: RabbitMQ 3
@@ -273,11 +264,6 @@ RABBIT_PORT=5672
 RABBIT_USER=router_admin
 RABBIT_PASSWORD=router_pass
 broker.queue.email.adm=adm.email.default
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=redis_secure_password
 
 # Autenticação e Criptografia
 JWT_SECRET=dev-secret-jwt-key-987654321012345678901234567890

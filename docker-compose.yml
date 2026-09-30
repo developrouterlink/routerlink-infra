@@ -8,14 +8,12 @@ networks:
 volumes:
   mysql_data:
     name: routerlink_mysql_data
-  redis_data:
-    name: routerlink_redis_data
   rabbitmq_data:
     name: routerlink_rabbitmq_data
 
 services:
   # ============================================================================
-  # CAMADA DE BANCOS DE DADOS & CACHE
+  # BANCO DE DADOS
   # ============================================================================
   mysql:
     image: mysql:8.0
@@ -37,25 +35,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks:
-      - routerlink-network
-
-
-  redis:
-    image: redis:7.2-alpine
-    container_name: routerlink_redis
-    restart: unless-stopped
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis_secure_password}", "--appendonly", "yes"]
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis_secure_password} ping | grep PONG || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     networks:
       - routerlink-network
 
@@ -126,9 +105,6 @@ services:
       RABBIT_PORT: 5672
       RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
       RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secure_password}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
       JASYPT_MASTER_PASSWORD: ${JASYPT_MASTER_PASSWORD:-masterpass_development_secret}
       accessKey: ${AWS_ACCESS_KEY:-local_access_key}
@@ -143,8 +119,6 @@ services:
       mysql:
         condition: service_healthy
       rabbitmq:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - routerlink-network
