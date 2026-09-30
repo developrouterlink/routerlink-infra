@@ -186,20 +186,19 @@ JASYPT_MASTER_PASSWORD=masterpass_development_secret
 ---
 
 ### 2. Bloco de Variáveis: Frontend ERP (`front-end/.env`)
-```properties
-# ==============================================================================
-# CONFIGURAÇÃO DE COMUNICAÇÃO COM O GATEWAY
-# ==============================================================================
-VITE_API_HOST=localhost
-VITE_API_PORT=8082
-VITE_API_BASE_URL=http://localhost:8082
+Copie e cole diretamente no arquivo `.env` dentro do repositório `front-end`:
 
-# ==============================================================================
-# WEBSOCKETS & LICENÇAS
-# ==============================================================================
-VITE_WS_URL=ws://localhost:8082/ws
-VITE_MUI_X_LICENSE_KEY=
-VITE_ENABLE_MOCK=false
+```properties
+VITE_API_HOST = "routerlink-jpkmvcvtcn.dynamic-m.com:50011"
+VITE_API_PORT = "8090"
+VITE_API_BASE_URL = "http://routerlink-jpkmvcvtcn.dynamic-m.com:50011"
+
+VITE_MUI_X_LICENSE_KEY = "bb84b24fd63ca288b7ddb17565c0c8b5Tz0xMjMwNDAsRT0xNzk3MDMzNTk5MDAwLFM9cHJvLExNPXN1YnNjcmlwdGlvbixQVj1RMy0yMDI0LEtWPTI="
+
+# 💡 Alternativa para rodar 100% Local (Docker):
+# VITE_API_HOST = "localhost:8080"
+# VITE_API_PORT = "8080"
+# VITE_API_BASE_URL = "http://localhost:8080"
 ```
 
 ---
