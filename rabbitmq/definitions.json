@@ -1,0 +1,69 @@
+{
+  "rabbit_version": "3.13.0",
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "adm.events.exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "fiscal.events.exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "adm.email.default",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "fiscal.email.default",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "fiscal.nfe.processamento",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "adm.events.exchange",
+      "vhost": "/",
+      "destination": "adm.email.default",
+      "destination_type": "queue",
+      "routing_key": "adm.email.default",
+      "arguments": {}
+    },
+    {
+      "source": "fiscal.events.exchange",
+      "vhost": "/",
+      "destination": "fiscal.email.default",
+      "destination_type": "queue",
+      "routing_key": "fiscal.email.default",
+      "arguments": {}
+    }
+  ]
+}

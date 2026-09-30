@@ -1,0 +1,309 @@
+version: '3.8'
+
+networks:
+  routerlink-network:
+    name: routerlink-network
+    driver: bridge
+
+volumes:
+  mysql_data:
+    name: routerlink_mysql_data
+  redis_data:
+    name: routerlink_redis_data
+  rabbitmq_data:
+    name: routerlink_rabbitmq_data
+
+services:
+  # ============================================================================
+  # CAMADA DE BANCOS DE DADOS & CACHE
+  # ============================================================================
+  mysql:
+    image: mysql:8.0
+    container_name: routerlink_mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secure_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-adm_db}
+      MYSQL_USER: ${MYSQL_USER:-router_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-router_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - routerlink-network
+
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: routerlink_redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis_secure_password}", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis_secure_password} ping | grep PONG || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - routerlink-network
+
+  # ============================================================================
+  # MENSAGERIA (RabbitMQ com Web UI e Filas Provisionadas)
+  # ============================================================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: routerlink_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - routerlink-network
+
+  # ============================================================================
+  # MICROSERVIÇOS DE BACKEND (Spring Boot / Java 21)
+  # ============================================================================
+  fiscal-gateway:
+    container_name: routerlink_gateway
+    build:
+      context: ../fiscal-gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8082}:8082"
+    environment:
+      SERVER_PORT: 8082
+      JWTKEY: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - routerlink-network
+
+  fiscal-adm:
+    container_name: routerlink_fiscal_adm
+    build:
+      context: ../fiscal-adm
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${ADM_PORT:-8083}:8083"
+    environment:
+      SERVER_PORT: 8083
+      SERVER_SERVLET_CONTEXT_PATH: /adm
+      ADM_DB_HOST: mysql:3306
+      ADM_DB_DATABASE: adm_db
+      ADM_DB_USUARIO: ${MYSQL_USER:-router_user}
+      ADM_DB_SENHA: ${MYSQL_PASSWORD:-router_pass}
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: 5672
+      RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secure_password}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
+      JASYPT_MASTER_PASSWORD: ${JASYPT_MASTER_PASSWORD:-masterpass_development_secret}
+      accessKey: ${AWS_ACCESS_KEY:-local_access_key}
+      secret: ${AWS_SECRET_KEY:-local_secret_key}
+      region: ${AWS_REGION:-us-east-1}
+      bucketEmpresas: ${S3_BUCKET_EMPRESAS:-routerlink-empresas-dev}
+      bucketContratos: ${S3_BUCKET_CONTRATOS:-routerlink-contratos-dev}
+      bucketDocumentosFiscais: ${S3_BUCKET_DOCUMENTOS_FISCAIS:-routerlink-documentos-fiscais-dev}
+      broker.queue.email.adm: adm.email.default
+      ERP_BASE_URL: http://routerlink-erp:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - routerlink-network
+
+  # ============================================================================
+  # BACKEND CORE DO ERP (ProjetoJava21 - Spring Boot / Java 21)
+  # ============================================================================
+  routerlink-erp:
+    container_name: routerlink_erp
+    build:
+      context: ../ProjetoJava21
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${ERP_PORT:-8080}:8080"
+    environment:
+      ERP_APP_PORT: 8080
+      ERP_DB_HOST: mysql:3306
+      ERP_DB_DATABASE: erp_db
+      ERP_DB_USUARIO: ${MYSQL_USER:-router_user}
+      ERP_DB_SENHA: ${MYSQL_PASSWORD:-router_pass}
+      JWT_SECRET: ${JWT_SECRET:-routerlink@2023}
+      FISCAL_ADM_URL: http://fiscal-adm:8083/adm
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.mailtrap.io}
+      EMAIL_PORTA: ${EMAIL_PORTA:-2525}
+      EMAIL_USUARIO: ${EMAIL_USUARIO:-mailtrap_user}
+      EMAIL_SENHA: ${EMAIL_SENHA:-mailtrap_password}
+      accessKey: ${AWS_ACCESS_KEY:-local_access_key}
+      secret: ${AWS_SECRET_KEY:-local_secret_key}
+      region: ${AWS_REGION:-us-east-1}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - routerlink-network
+
+  api-fiscal:
+    container_name: routerlink_api_fiscal
+    build:
+      context: ../api-fiscal
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FISCAL_PORT:-8085}:8085"
+    environment:
+      SERVER_PORT: 8085
+      FISCAL_DB_HOST: mysql:3306
+      FISCAL_DB_DATABASE: fiscal_db
+      FISCAL_DB_USUARIO: ${MYSQL_USER:-router_user}
+      FISCAL_DB_SENHA: ${MYSQL_PASSWORD:-router_pass}
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: 5672
+      RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+      JASYPT_MASTER_PASSWORD: ${JASYPT_MASTER_PASSWORD:-masterpass_development_secret}
+      accessKey: ${AWS_ACCESS_KEY:-local_access_key}
+      secret: ${AWS_SECRET_KEY:-local_secret_key}
+      region: ${AWS_REGION:-us-east-1}
+      bucketEmpresas: ${S3_BUCKET_EMPRESAS:-routerlink-empresas-dev}
+      bucketDocumentosFiscais: ${S3_BUCKET_DOCUMENTOS_FISCAIS:-routerlink-documentos-fiscais-dev}
+      broker.queue.email.fiscal: fiscal.email.default
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - routerlink-network
+
+  fiscal-notificacoes:
+    container_name: routerlink_fiscal_notificacoes
+    build:
+      context: ../fiscal-notificacoes
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${NOTIFICACOES_PORT:-8084}:8084"
+    environment:
+      SERVER_PORT: 8084
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: 5672
+      RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+      broker.queue.email.adm: adm.email.default
+      broker.queue.email.fiscal: fiscal.email.default
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.mailtrap.io}
+      EMAIL_PORTA: ${EMAIL_PORTA:-2525}
+      EMAIL_USUARIO: ${EMAIL_USUARIO:-mailtrap_user}
+      EMAIL_SENHA: ${EMAIL_SENHA:-mailtrap_password}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - routerlink-network
+
+  # ============================================================================
+  # FRONTEND PRINCIPAL (React / Vite + Nginx)
+  # ============================================================================
+  frontend-erp:
+    container_name: routerlink_frontend
+    build:
+      context: ../front-end
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      VITE_API_HOST: localhost
+      VITE_API_PORT: ${GATEWAY_PORT:-8082}
+      VITE_API_BASE_URL: http://localhost:${GATEWAY_PORT:-8082}
+    depends_on:
+      fiscal-gateway:
+        condition: service_started
+    networks:
+      - routerlink-network
+
+  # ============================================================================
+  # MÓDULOS SEFAZ (Desligados por padrão via Docker Profile 'sefaz')
+  # ============================================================================
+  sefaz-cliente:
+    profiles: ["sefaz"]
+    container_name: routerlink_sefaz_cliente
+    build:
+      context: ../sefaz-cliente
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${SEFAZ_CLIENTE_PORT:-3001}:80"
+    environment:
+      VITE_API_URL: http://localhost:${GATEWAY_PORT:-8082}/fiscal
+    depends_on:
+      api-fiscal:
+        condition: service_started
+    networks:
+      - routerlink-network
+
+  sefaz-backoffice:
+    profiles: ["sefaz"]
+    container_name: routerlink_sefaz_backoffice
+    build:
+      context: ../sefaz-backoffice
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${SEFAZ_BACKOFFICE_PORT:-3002}:80"
+    environment:
+      VITE_API_URL: http://localhost:${GATEWAY_PORT:-8082}/fiscal
+    depends_on:
+      api-fiscal:
+        condition: service_started
+    networks:
+      - routerlink-network
+
+  sefaz-mock-service:
+    profiles: ["sefaz"]
+    image: wiremock/wiremock:3.5.4-alpine
+    container_name: routerlink_sefaz_mock
+    restart: unless-stopped
+    networks:
+    ports:
+      - "${SEFAZ_MOCK_PORT:-8090}:8080"
+      - routerlink-network
