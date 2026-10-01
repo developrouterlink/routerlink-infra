@@ -69,6 +69,8 @@ Antes de rodar pela primeira vez, copie as variáveis de ambiente:
 cp .env.example .env
 ```
 
+> **Onde estão os repositórios?** Por padrão o compose espera os repos lado a lado com este (`../fiscal-adm`, `../ProjetoJava21`, ...). Se você organiza de outro jeito, ajuste as variáveis `*_PATH` na seção **Caminhos dos repositórios** do seu `.env` (ex.: `FISCAL_ADM_PATH=../../fiscal/fiscal-adm`). O `.env` não é versionado, então cada dev usa a própria estrutura.
+
 ### 2. Inicialização Padrão (Sem os Módulos SEFAZ)
 Sobe toda a base de dados, mensageria, microserviços centrais e o frontend principal:
 ```bash

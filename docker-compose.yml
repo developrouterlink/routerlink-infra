@@ -68,7 +68,7 @@ services:
   fiscal-gateway:
     container_name: routerlink_gateway
     build:
-      context: ../fiscal-gateway
+      context: ${FISCAL_GATEWAY_PATH:-../fiscal-gateway}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -87,7 +87,7 @@ services:
   fiscal-adm:
     container_name: routerlink_fiscal_adm
     build:
-      context: ../fiscal-adm
+      context: ${FISCAL_ADM_PATH:-../fiscal-adm}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -127,7 +127,7 @@ services:
   routerlink-erp:
     container_name: routerlink_erp
     build:
-      context: ../ProjetoJava21
+      context: ${ERP_PATH:-../ProjetoJava21}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -156,7 +156,7 @@ services:
   api-fiscal:
     container_name: routerlink_api_fiscal
     build:
-      context: ../api-fiscal
+      context: ${API_FISCAL_PATH:-../api-fiscal}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -189,7 +189,7 @@ services:
   fiscal-notificacoes:
     container_name: routerlink_fiscal_notificacoes
     build:
-      context: ../fiscal-notificacoes
+      context: ${FISCAL_NOTIFICACOES_PATH:-../fiscal-notificacoes}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -218,7 +218,7 @@ services:
   frontend-erp:
     container_name: routerlink_frontend
     build:
-      context: ../front-end
+      context: ${FRONTEND_PATH:-../front-end}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -240,7 +240,7 @@ services:
     profiles: ["sefaz"]
     container_name: routerlink_sefaz_cliente
     build:
-      context: ../sefaz-cliente
+      context: ${SEFAZ_CLIENTE_PATH:-../sefaz-cliente}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -257,7 +257,7 @@ services:
     profiles: ["sefaz"]
     container_name: routerlink_sefaz_backoffice
     build:
-      context: ../sefaz-backoffice
+      context: ${SEFAZ_BACKOFFICE_PATH:-../sefaz-backoffice}
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
