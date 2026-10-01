@@ -138,7 +138,7 @@ services:
       ERP_DB_DATABASE: erp_db
       ERP_DB_USUARIO: ${MYSQL_USER:-router_user}
       ERP_DB_SENHA: ${MYSQL_PASSWORD:-router_pass}
-      JWT_SECRET: ${JWT_SECRET:-routerlink@2023}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
       FISCAL_ADM_URL: http://fiscal-adm:8083/adm
       EMAIL_HOST: ${EMAIL_HOST:-smtp.mailtrap.io}
       EMAIL_PORTA: ${EMAIL_PORTA:-2525}
