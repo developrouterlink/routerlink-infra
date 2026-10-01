@@ -110,6 +110,7 @@ docker compose up -d mysql rabbitmq
 
 * **Frontend ERP:** [http://localhost:3000](http://localhost:3000)
 * **Backend ERP (ProjetoJava21):** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+* **Service Registry (Eureka):** [http://localhost:8081](http://localhost:8081)
 * **Fiscal Gateway (APIs & Swagger Central):** [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html)
 * **RabbitMQ Management Dashboard:** [http://localhost:15672](http://localhost:15672)  
   * *Usuário:* `router_admin` | *Senha:* `router_pass`

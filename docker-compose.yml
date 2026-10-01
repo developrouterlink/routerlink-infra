@@ -65,6 +65,23 @@ services:
   # ============================================================================
   # MICROSERVIÇOS DE BACKEND (Spring Boot / Java 21)
   # ============================================================================
+  service-registry:
+    container_name: routerlink_service_registry
+    build:
+      context: ../fiscal-service-registry
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${REGISTRY_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - routerlink-network
+
   fiscal-gateway:
     container_name: routerlink_gateway
     build:
@@ -75,8 +92,12 @@ services:
       - "${GATEWAY_PORT:-8082}:8082"
     environment:
       SERVER_PORT: 8082
+      eureka.client.service-url.defaultZone: http://service-registry:8081/eureka/
+      eureka.instance.prefer-ip-address: "true"
       JWTKEY: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
     depends_on:
+      service-registry:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       rabbitmq:
@@ -94,7 +115,8 @@ services:
       - "${ADM_PORT:-8083}:8083"
     environment:
       SERVER_PORT: 8083
-      SERVER_SERVLET_CONTEXT_PATH: /adm
+      eureka.client.service-url.defaultZone: http://service-registry:8081/eureka/
+      eureka.instance.prefer-ip-address: "true"
       ADM_DB_HOST: mysql:3306
       ADM_DB_DATABASE: adm_db
       ADM_DB_USUARIO: ${MYSQL_USER:-router_user}
@@ -103,6 +125,10 @@ services:
       RABBIT_PORT: 5672
       RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
       RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
       JASYPT_MASTER_PASSWORD: ${JASYPT_MASTER_PASSWORD:-masterpass_development_secret}
       accessKey: ${AWS_ACCESS_KEY:-local_access_key}
@@ -114,6 +140,8 @@ services:
       broker.queue.email.adm: adm.email.default
       ERP_BASE_URL: http://routerlink-erp:8080
     depends_on:
+      service-registry:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       rabbitmq:
@@ -139,7 +167,7 @@ services:
       ERP_DB_USUARIO: ${MYSQL_USER:-router_user}
       ERP_DB_SENHA: ${MYSQL_PASSWORD:-router_pass}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-jwt-key-987654321012345678901234567890}
-      FISCAL_ADM_URL: http://fiscal-adm:8083/adm
+      FISCAL_ADM_URL: http://fiscal-gateway:8082/adm
       EMAIL_HOST: ${EMAIL_HOST:-smtp.mailtrap.io}
       EMAIL_PORTA: ${EMAIL_PORTA:-2525}
       EMAIL_USUARIO: ${EMAIL_USUARIO:-mailtrap_user}
@@ -147,6 +175,25 @@ services:
       accessKey: ${AWS_ACCESS_KEY:-local_access_key}
       secret: ${AWS_SECRET_KEY:-local_secret_key}
       region: ${AWS_REGION:-us-east-1}
+      bucketFuncionarios: ${S3_BUCKET_FUNCIONARIOS:-routerlink-funcionarios-dev}
+      bucketCotacao: ${S3_BUCKET_COTACAO:-routerlink-cotacao-dev}
+      bucketDocumentosFiscais: ${S3_BUCKET_DOCUMENTOS_FISCAIS:-routerlink-documentos-fiscais-dev}
+      bucketDocumentosFiscaisSaida: ${S3_BUCKET_DOCUMENTOS_FISCAIS_SAIDA:-routerlink-documentos-fiscais-saida-dev}
+      bucketAnexosFluxo: ${S3_BUCKET_ANEXOS_FLUXO:-routerlink-anexos-fluxo-dev}
+      bucketAnexosReparo: ${S3_BUCKET_ANEXOS_REPARO:-routerlink-anexos-reparo-dev}
+      bucketAnexosVenda: ${S3_BUCKET_ANEXOS_VENDA:-routerlink-anexos-venda-dev}
+      bucketAnexosLocacao: ${S3_BUCKET_ANEXOS_LOCACAO:-routerlink-anexos-locacao-dev}
+      bucketAnexosAtendimento: ${S3_BUCKET_ANEXOS_ATENDIMENTO:-routerlink-anexos-atendimento-dev}
+      bucketAnexosIsc: ${S3_BUCKET_ANEXOS_ISC:-routerlink-anexos-isc-dev}
+      bucketAnexosVendaDistribuidor: ${S3_BUCKET_ANEXOS_VENDA_DISTRIBUIDOR:-routerlink-anexos-venda-distribuidor-dev}
+      bucketPosVendas: ${S3_BUCKET_POS_VENDAS:-routerlink-pos-vendas-dev}
+      bucketK200: ${S3_BUCKET_K200:-routerlink-k200-dev}
+      EMAIL_RENOVACAO: ${EMAIL_RENOVACAO:-renovacao@routerlink.local}
+      destinariosPnTop: ${DESTINATARIOS_PN_TOP:-pntop@routerlink.local}
+      enderecoFront: http://localhost:${FRONTEND_PORT:-3000}
+      NFEIO_API_KEY: ${NFEIO_API_KEY:-}
+      TIFLUX_API: ${TIFLUX_API:-}
+      SCALAR_URL: ${SCALAR_URL:-}
     depends_on:
       mysql:
         condition: service_healthy
@@ -163,6 +210,8 @@ services:
       - "${FISCAL_PORT:-8085}:8085"
     environment:
       SERVER_PORT: 8085
+      eureka.client.service-url.defaultZone: http://service-registry:8081/eureka/
+      eureka.instance.prefer-ip-address: "true"
       FISCAL_DB_HOST: mysql:3306
       FISCAL_DB_DATABASE: fiscal_db
       FISCAL_DB_USUARIO: ${MYSQL_USER:-router_user}
@@ -171,6 +220,10 @@ services:
       RABBIT_PORT: 5672
       RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
       RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
       JASYPT_MASTER_PASSWORD: ${JASYPT_MASTER_PASSWORD:-masterpass_development_secret}
       accessKey: ${AWS_ACCESS_KEY:-local_access_key}
       secret: ${AWS_SECRET_KEY:-local_secret_key}
@@ -179,6 +232,8 @@ services:
       bucketDocumentosFiscais: ${S3_BUCKET_DOCUMENTOS_FISCAIS:-routerlink-documentos-fiscais-dev}
       broker.queue.email.fiscal: fiscal.email.default
     depends_on:
+      service-registry:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       rabbitmq:
@@ -196,10 +251,16 @@ services:
       - "${NOTIFICACOES_PORT:-8084}:8084"
     environment:
       SERVER_PORT: 8084
+      eureka.client.service-url.defaultZone: http://service-registry:8081/eureka/
+      eureka.instance.prefer-ip-address: "true"
       RABBIT_HOST: rabbitmq
       RABBIT_PORT: 5672
       RABBIT_USER: ${RABBITMQ_DEFAULT_USER:-router_admin}
       RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-router_admin}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-router_pass}
       broker.queue.email.adm: adm.email.default
       broker.queue.email.fiscal: fiscal.email.default
       EMAIL_HOST: ${EMAIL_HOST:-smtp.mailtrap.io}
@@ -207,6 +268,8 @@ services:
       EMAIL_USUARIO: ${EMAIL_USUARIO:-mailtrap_user}
       EMAIL_SENHA: ${EMAIL_SENHA:-mailtrap_password}
     depends_on:
+      service-registry:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:

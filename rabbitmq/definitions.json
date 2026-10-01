@@ -1,8 +1,24 @@
 {
   "rabbit_version": "3.13.0",
+  "users": [
+    {
+      "name": "router_admin",
+      "password": "router_pass",
+      "tags": ["administrator"]
+    }
+  ],
   "vhosts": [
     {
       "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "router_admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
     }
   ],
   "exchanges": [
