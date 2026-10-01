@@ -63,11 +63,35 @@ flowchart TB
 
 ## 🚀 Comandos de Inicialização
 
+### 📦 Como funcionam as imagens
+Você **não precisa clonar os outros repositórios** para subir o ecossistema. Cada serviço publica a própria imagem Docker no GitHub Container Registry (GHCR) a cada push na branch de desenvolvimento, e este compose apenas baixa essas imagens:
+
+| Serviço | Imagem | Publicada a partir de |
+| :--- | :--- | :--- |
+| ERP (`ProjetoJava21`) | `ghcr.io/developrouterlink/projetojava21:develope` | branch `develope` |
+| `fiscal-gateway` | `ghcr.io/developrouterlink/fiscal-gateway:develope` | branch `develope` |
+| `fiscal-adm` | `ghcr.io/developrouterlink/fiscal-adm:develope` | branch `develope` |
+| `api-fiscal` | `ghcr.io/developrouterlink/api-fiscal:develope` | branch `develope` |
+| `fiscal-notificacoes` | `ghcr.io/developrouterlink/fiscal-notificacoes:develope` | branch `develope` |
+| `front-end` | `ghcr.io/developrouterlink/front-end:developer` | branch `developer` |
+| `sefaz-cliente` | `ghcr.io/developrouterlink/sefaz-cliente:develope` | branch `develope` |
+| `sefaz-backoffice` | `ghcr.io/developrouterlink/sefaz-backoffice:develope` | branch `develope` |
+
+O build é feito pelo workflow `.github/workflows/docker-image.yml` de cada repositório (GitHub Actions). Também é publicada uma tag por commit (`sha-<hash>`) caso precise fixar uma versão específica.
+
+> As imagens dos front-ends são buildadas apontando para o ambiente local (`http://localhost:8082`), pois o Vite embute as variáveis `VITE_*` no momento do build.
+
 ### 1. Preparação Inicial do Ambiente
-Antes de rodar pela primeira vez, copie as variáveis de ambiente:
-```bash
-cp .env.example .env
-```
+Antes de rodar pela primeira vez:
+
+1. Copie as variáveis de ambiente:
+   ```bash
+   cp .env.example .env
+   ```
+2. Faça login no GHCR (uma vez por máquina). Crie um [Personal Access Token (classic)](https://github.com/settings/tokens) com o escopo **`read:packages`** e rode:
+   ```bash
+   echo <SEU_TOKEN> | docker login ghcr.io -u <SEU_USUARIO_GITHUB> --password-stdin
+   ```
 
 ### 2. Inicialização Padrão (Sem os Módulos SEFAZ)
 Sobe toda a base de dados, mensageria, microserviços centrais e o frontend principal:
@@ -91,6 +115,14 @@ Se você estiver codando na sua IDE (IntelliJ/VS Code) e no terminal com `npm ru
 docker compose up -d mysql rabbitmq
 ```
 
+### 5. Trabalhando em um serviço com o resto do ecossistema rodando
+Suba tudo pelas imagens, pare o container do serviço que você vai alterar e rode ele pela IDE:
+```bash
+docker compose up -d
+docker compose stop fiscal-adm   # o serviço em que você está trabalhando
+```
+Rodando fora do Docker, o serviço acessa a infra por `localhost` (ex.: `ADM_DB_HOST=localhost:3306`, `RABBIT_HOST=localhost`) em vez dos nomes dos containers (`mysql`, `rabbitmq`).
+
 ---
 
 ## 🛠️ Comandos de Gestão e Diagnóstico
@@ -100,7 +132,7 @@ docker compose up -d mysql rabbitmq
 | **Ver status e healthchecks** | `docker compose ps` |
 | **Acompanhar logs de todos os serviços** | `docker compose logs -f` |
 | **Logs de um serviço específico** | `docker compose logs -f fiscal-adm` |
-| **Reconstruir imagens após alteração** | `docker compose up -d --build` |
+| **Atualizar para as imagens mais recentes** | `docker compose pull && docker compose up -d` |
 | **Parar todos os containers** | `docker compose down` |
 | **Parar e limpar volumes (Reset Total do Banco)** | `docker compose down -v` |
 

@@ -67,9 +67,7 @@ services:
   # ============================================================================
   fiscal-gateway:
     container_name: routerlink_gateway
-    build:
-      context: ../fiscal-gateway
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/fiscal-gateway:develope
     restart: unless-stopped
     ports:
       - "${GATEWAY_PORT:-8082}:8082"
@@ -86,9 +84,7 @@ services:
 
   fiscal-adm:
     container_name: routerlink_fiscal_adm
-    build:
-      context: ../fiscal-adm
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/fiscal-adm:develope
     restart: unless-stopped
     ports:
       - "${ADM_PORT:-8083}:8083"
@@ -126,9 +122,7 @@ services:
   # ============================================================================
   routerlink-erp:
     container_name: routerlink_erp
-    build:
-      context: ../ProjetoJava21
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/projetojava21:develope
     restart: unless-stopped
     ports:
       - "${ERP_PORT:-8080}:8080"
@@ -155,9 +149,7 @@ services:
 
   api-fiscal:
     container_name: routerlink_api_fiscal
-    build:
-      context: ../api-fiscal
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/api-fiscal:develope
     restart: unless-stopped
     ports:
       - "${FISCAL_PORT:-8085}:8085"
@@ -188,9 +180,7 @@ services:
 
   fiscal-notificacoes:
     container_name: routerlink_fiscal_notificacoes
-    build:
-      context: ../fiscal-notificacoes
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/fiscal-notificacoes:develope
     restart: unless-stopped
     ports:
       - "${NOTIFICACOES_PORT:-8084}:8084"
@@ -217,16 +207,10 @@ services:
   # ============================================================================
   frontend-erp:
     container_name: routerlink_frontend
-    build:
-      context: ../front-end
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/front-end:developer
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:80"
-    environment:
-      VITE_API_HOST: localhost
-      VITE_API_PORT: ${GATEWAY_PORT:-8082}
-      VITE_API_BASE_URL: http://localhost:${GATEWAY_PORT:-8082}
     depends_on:
       fiscal-gateway:
         condition: service_started
@@ -239,14 +223,10 @@ services:
   sefaz-cliente:
     profiles: ["sefaz"]
     container_name: routerlink_sefaz_cliente
-    build:
-      context: ../sefaz-cliente
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/sefaz-cliente:develope
     restart: unless-stopped
     ports:
       - "${SEFAZ_CLIENTE_PORT:-3001}:80"
-    environment:
-      VITE_API_URL: http://localhost:${GATEWAY_PORT:-8082}/fiscal
     depends_on:
       api-fiscal:
         condition: service_started
@@ -256,14 +236,10 @@ services:
   sefaz-backoffice:
     profiles: ["sefaz"]
     container_name: routerlink_sefaz_backoffice
-    build:
-      context: ../sefaz-backoffice
-      dockerfile: Dockerfile
+    image: ghcr.io/developrouterlink/sefaz-backoffice:develope
     restart: unless-stopped
     ports:
       - "${SEFAZ_BACKOFFICE_PORT:-3002}:80"
-    environment:
-      VITE_API_URL: http://localhost:${GATEWAY_PORT:-8082}/fiscal
     depends_on:
       api-fiscal:
         condition: service_started
