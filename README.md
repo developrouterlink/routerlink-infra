@@ -6,6 +6,41 @@ Este ambiente espelha 100% o comportamento, contratos de rede e topologia de pro
 
 ---
 
+## ⚡ Início Rápido
+
+Você só precisa deste repositório clonado (em qualquer pasta). Os serviços vêm prontos do GHCR, então não importa onde (ou se) você clonou os outros repos.
+
+```bash
+make setup                # 1ª vez: cria o .env e confere o login no GHCR
+make up                   # baixa as imagens mais novas e sobe tudo
+```
+
+No dia a dia, para trabalhar em um serviço com o resto do ecossistema rodando:
+
+```bash
+make dev s=fiscal-adm     # sobe tudo MENOS o fiscal-adm e imprime as variáveis para a IDE
+```
+
+Cole as variáveis impressas na configuração de execução da IDE (já vêm com `localhost` no lugar dos nomes dos containers) e rode o serviço normalmente, de onde ele estiver clonado.
+
+| Comando | O que faz |
+| :--- | :--- |
+| `make up` | Baixa as imagens mais novas e sobe o ecossistema (espera os healthchecks) |
+| `make sefaz` | Igual ao `up`, incluindo os módulos SEFAZ |
+| `make infra` | Sobe só MySQL e RabbitMQ |
+| `make dev s=<servico>` | Sobe tudo menos `<servico>` e mostra as variáveis para rodá-lo na IDE |
+| `make env s=<servico>` | Só mostra as variáveis de `<servico>` para a IDE |
+| `make logs s=<servico>` | Logs de um serviço (sem `s`, de todos) |
+| `make ps` | Status e healthchecks |
+| `make down` | Para tudo (mantém os dados) |
+| `make reset` | Para tudo e **apaga** os volumes (pede confirmação) |
+
+Serviços: `routerlink-erp`, `fiscal-gateway`, `fiscal-adm`, `api-fiscal`, `fiscal-notificacoes`, `frontend-erp`, `sefaz-cliente`, `sefaz-backoffice`, `sefaz-mock-service`, `mysql`, `rabbitmq`.
+
+> O `make` já vem no Linux, macOS e WSL. No Windows sem WSL, use os comandos `docker compose` das seções abaixo.
+
+---
+
 ## 🏛️ Topologia da Arquitetura
 
 ```mermaid
@@ -116,7 +151,7 @@ docker compose up -d mysql rabbitmq
 ```
 
 ### 5. Trabalhando em um serviço com o resto do ecossistema rodando
-Suba tudo pelas imagens, pare o container do serviço que você vai alterar e rode ele pela IDE:
+Atalho: `make dev s=<servico>` faz os passos abaixo e já imprime as variáveis para a IDE. Manualmente: suba tudo pelas imagens, pare o container do serviço que você vai alterar e rode ele pela IDE:
 ```bash
 docker compose up -d
 docker compose stop fiscal-adm   # o serviço em que você está trabalhando
